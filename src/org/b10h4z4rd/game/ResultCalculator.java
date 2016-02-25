@@ -1,5 +1,7 @@
 package org.b10h4z4rd.game;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -10,34 +12,27 @@ public class ResultCalculator {
     public static final int PAIR = 1, TWO_PAIRS = 2, TRIPLET = 3, STREET = 4, FLUSH = 5, FULL_HOUSE = 6, QUARTET = 7, STRAIGHT_FLUSH = 8, ROYAL_FLUSH = 9;
 
     private Card[] table;
-    private int code;
+    private int code = 0;
     private Player player;
 
-    private ResultCalculator(Player player, Card[] table, int code) {
+    public ResultCalculator(Player player, Card[] table) {
         this.player = player;
         this.table = table;
-        this.code = code;
+        checkForWinning();
+    }
+
+    public int getCode() {
+        return code;
+    }
+
+    public Player getPlayer() {
+        return player;
     }
 
     private Card[] cardsWithoutResult(Card[] origin, Card[] cards){
-        Card[] result = new Card[origin.length - cards.length];
-        int counter = 0;
-
-        for (Card anOrigin : origin) {
-            boolean found = false;
-            for (Card aToRemove : cards) {
-                if (anOrigin.equals(aToRemove)) {
-                    found = true;
-                    break;
-                }
-            }
-            if (found) {
-                result[counter] = anOrigin;
-                counter++;
-            }
-        }
-
-        return result;
+        ArrayList<Card> result = new ArrayList<Card>(Arrays.asList(origin));
+        result.removeAll(Arrays.asList(cards));
+        return result.toArray(new Card[result.size()]);
     }
 
     private Card[] combineCards() {
@@ -53,10 +48,11 @@ public class ResultCalculator {
         Card[] result;
 
         if ((result = findPair(origin)) != null) {
-            if ((result = findTriplet(cardsWithoutResult(origin, result))) != null) {
+            Card[] secondResult;
+            if ((secondResult = findTriplet(cardsWithoutResult(origin, result))) != null) {
                 //Full House
                 code = FULL_HOUSE;
-            } else if ((result = findPair(cardsWithoutResult(origin, result))) != null) {
+            } else if ((secondResult = findPair(cardsWithoutResult(origin, result))) != null) {
                 //Two Pairs
                 code = TWO_PAIRS;
             } else {
@@ -66,8 +62,9 @@ public class ResultCalculator {
         }
 
         if ((result = findFlush(origin, 5, 0, 0)) != null) {
-            if ((result = findStreet(cardsWithoutResult(origin, result), 5, 0)) != null) {
-                if (isRoyal(result)) {
+            Card[] secondResult;
+            if ((secondResult = findStreet(result, 5, 0)) != null) {
+                if (isRoyal(secondResult)) {
                     //Royal Flush
                     code = ROYAL_FLUSH;
                 } else {
@@ -87,6 +84,11 @@ public class ResultCalculator {
         if ((result = findQuartet(origin)) != null) {
             //Quartet
             code = QUARTET;
+        }
+
+        if ((result = findTriplet(origin)) != null) {
+            //Triplet
+            code = TRIPLET;
         }
     }
 
@@ -157,7 +159,7 @@ public class ResultCalculator {
     }
 
     private static Card[] findStreet(Card[] cards, int length, int startVal) {
-        Card[] result = new Card[length];
+        /*Card[] result = new Card[length];
 
         if (length == 1)
             return new Card[]{findCardOfValue(cards, startVal)};
@@ -170,6 +172,19 @@ public class ResultCalculator {
                 return null;
         }
 
+        return result;*/
+
+        if (length == 1)
+            return new Card[]{findCardOfValue(cards, startVal)};
+
+        Card[] result = new Card[length], tmp;
+
+        for (Card c : cards) {
+            result[0] = c;
+            tmp = findStreet(cards, length - 1, c.getNum() + 1);
+            System.arraycopy(tmp, 0, result, 1, length - 1);
+        }
+
         return result;
     }
 
@@ -178,18 +193,22 @@ public class ResultCalculator {
 
         int counter = 1;
         for (Card c : cards) {
-            result[0] = c;
-            Card[] temp = new Card[cards.length - counter];
-            System.arraycopy(cards, counter, temp, 0, cards.length - counter);
-            Card[] possiblePair = findPair(temp);
-            if (possiblePair != null) {
-                if (result[0].getNum() == possiblePair[0].getNum()) {
-                    result[1] = possiblePair[0];
-                    result[2] = possiblePair[1];
-                    return result;
+            if (cards.length - counter >= 2) {
+                result[0] = c;
+                Card[] temp = new Card[cards.length - counter];
+                System.arraycopy(cards, counter, temp, 0, cards.length - counter);
+                Card[] possiblePair = findPair(temp);
+                if (possiblePair != null) {
+                    if (result[0].getNum() == possiblePair[0].getNum()) {
+                        result[1] = possiblePair[0];
+                        result[2] = possiblePair[1];
+                        return result;
+                    }
                 }
+                counter++;
+            } else {
+                break;
             }
-            counter++;
         }
 
         return null;

@@ -77,28 +77,20 @@ public class Round implements Runnable {
     }
 
     private ResultCalculator calculateWinner() {
-        LinkedList<Player> possibleWinners = new LinkedList<Player>();
-        LinkedList<ResultCalculator> corresopondingResults = new LinkedList<ResultCalculator>();
-
-        Card[] toCheck = new Card[7];
-        System.arraycopy(cards, 0, toCheck, 0, 5);
+        LinkedList<ResultCalculator> results = new LinkedList<ResultCalculator>();
 
         for (Player player : PokerHost.getHost().getPlayers()) {
-            toCheck[5] = player.getCards()[0];
-            toCheck[6] = player.getCards()[1];
-
-            ResultCalculator result = ResultCalculator.checkForWinning(toCheck);
+            ResultCalculator result = new ResultCalculator(player, cards);
             if (result.getCode() > 0) {
-                possibleWinners.add(player);
-                corresopondingResults.add(result);
+                results.add(result);
             }
         }
 
-        if (possibleWinners.size() > 0) {
+        if (results.size() > 0) {
             int max = 0;
             int index = 0;
             int c = 0;
-            for (ResultCalculator resultCalculator : corresopondingResults) {
+            for (ResultCalculator resultCalculator : results) {
                 if (resultCalculator.getCode() > max) {
                     max = resultCalculator.getCode();
                     index = c;
@@ -106,12 +98,11 @@ public class Round implements Runnable {
                 c++;
             }
 
-            int[] collisions = ResultCalculator.searchCollisions(corresopondingResults, max);
+            int[] collisions = ResultCalculator.searchCollisions(results, max);
             if (collisions.length > 0) {
                 // TODO: Find better player
             } else {
-                ResultCalculator wc = corresopondingResults.get(index);
-                wc.setPlayer(possibleWinners.get(index));
+                ResultCalculator wc = results.get(index);
                 return wc;
             }
         }

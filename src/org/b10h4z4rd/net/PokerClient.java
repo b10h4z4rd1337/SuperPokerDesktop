@@ -54,7 +54,7 @@ public class PokerClient implements Runnable {
     }
 
     public String getIpAddress() {
-        return "192.168.178.21";
+        return "127.0.0.1";
     }
 
     public int getPlayerCount() {
